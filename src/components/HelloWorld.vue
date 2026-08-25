@@ -2,25 +2,25 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
+      이 프로젝트를 설정하고 커스터마이징하는 방법에 대한 가이드와 예제는<br>
+      아래
+      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli 공식 문서</a>를 확인하세요.
     </p>
     <h3>{{date}}</h3>
-    <h3>Installed CLI Plugins</h3>
+    <h3>설치된 CLI 플러그인</h3>
     <ul>
       <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
       <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
     </ul>
-    <h3>Essential Links</h3>
+    <h3>주요 링크</h3>
     <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
+      <li><a href="https://vuejs.org" target="_blank" rel="noopener">공식 문서</a></li>
+      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">포럼</a></li>
+      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">커뮤니티 채팅</a></li>
+      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">트위터</a></li>
+      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">뉴스</a></li>
     </ul>
-    <h3>Ecosystem</h3>
+    <h3>생태계</h3>
     <ul>
       <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
       <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
