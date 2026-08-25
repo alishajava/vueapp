@@ -27,6 +27,8 @@
         <button type="submit">추가</button>
       </form>
 
+      <p v-if="todoError" class="error">{{ todoError }}</p>
+
       <p v-if="loadingTodos" class="status">불러오는 중...</p>
       <p v-else-if="todos.length === 0" class="empty">아직 할 일이 없어요.</p>
 
@@ -76,6 +78,7 @@ export default {
       user: null,
       newTodoText: '',
       todos: [],
+      todoError: '',
       loadingTodos: false,
       unsubscribeAuth: null,
       unsubscribeTodos: null
@@ -118,6 +121,7 @@ export default {
       if (!this.user) return
 
       this.loadingTodos = true
+      this.todoError = ''
       const todosQuery = query(
         collection(db, 'todos'),
         where('uid', '==', this.user.uid),
@@ -126,26 +130,48 @@ export default {
       this.unsubscribeTodos = onSnapshot(todosQuery, (snapshot) => {
         this.todos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
         this.loadingTodos = false
-      }, () => {
+      }, (err) => {
         this.loadingTodos = false
+        this.todoError = this.describeFirestoreError(err)
       })
     },
     async addTodo() {
       const text = this.newTodoText.trim()
       if (!text || !this.user) return
       this.newTodoText = ''
-      await addDoc(collection(db, 'todos'), {
-        uid: this.user.uid,
-        text,
-        done: false,
-        createdAt: serverTimestamp()
-      })
+      this.todoError = ''
+      try {
+        await addDoc(collection(db, 'todos'), {
+          uid: this.user.uid,
+          text,
+          done: false,
+          createdAt: serverTimestamp()
+        })
+      } catch (err) {
+        this.todoError = this.describeFirestoreError(err)
+      }
     },
     async toggleDone(todo) {
-      await updateDoc(doc(db, 'todos', todo.id), { done: !todo.done })
+      this.todoError = ''
+      try {
+        await updateDoc(doc(db, 'todos', todo.id), { done: !todo.done })
+      } catch (err) {
+        this.todoError = this.describeFirestoreError(err)
+      }
     },
     async removeTodo(todo) {
-      await deleteDoc(doc(db, 'todos', todo.id))
+      this.todoError = ''
+      try {
+        await deleteDoc(doc(db, 'todos', todo.id))
+      } catch (err) {
+        this.todoError = this.describeFirestoreError(err)
+      }
+    },
+    describeFirestoreError(err) {
+      if (err && err.code === 'permission-denied') {
+        return '저장/조회 권한이 없어요. Firebase 콘솔 → Firestore Database → 규칙에 firestore.rules 내용이 게시되어 있는지 확인해주세요.'
+      }
+      return '문제가 발생했어요: ' + (err && err.message ? err.message : String(err))
     }
   }
 }
