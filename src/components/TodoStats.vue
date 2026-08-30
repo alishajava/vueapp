@@ -7,15 +7,21 @@
     <div v-else class="charts">
       <div class="chart-box">
         <h4>완료 현황</h4>
-        <Doughnut :data="statusChartData" :options="doughnutOptions" />
+        <div class="chart-canvas">
+          <Doughnut :data="statusChartData" :options="doughnutOptions" />
+        </div>
       </div>
       <div class="chart-box">
         <h4>날짜별 등록 개수</h4>
-        <Bar :data="dailyChartData" :options="barOptions" />
+        <div class="chart-canvas">
+          <Bar :data="dailyChartData" :options="barOptions" />
+        </div>
       </div>
       <div class="chart-box chart-box-wide">
         <h4>날짜별 완료/미완료 현황 (피벗)</h4>
-        <Bar :data="pivotChartData" :options="pivotOptions" />
+        <div class="chart-canvas">
+          <Bar :data="pivotChartData" :options="pivotOptions" />
+        </div>
       </div>
     </div>
   </a-card>
@@ -163,13 +169,13 @@ export default {
 .charts {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  row-gap: 40px;
+  column-gap: 24px;
 }
 
 .chart-box {
   flex: 1;
   min-width: 260px;
-  height: 260px;
 }
 
 .chart-box-wide {
@@ -180,5 +186,10 @@ export default {
   margin: 0 0 8px;
   font-size: 14px;
   color: #555;
+}
+
+.chart-canvas {
+  position: relative;
+  height: 220px;
 }
 </style>
