@@ -76,13 +76,13 @@ export default {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
       return [
         { field: 'title', headerName: '제목', editable: isOwn, flex: 2 },
-        { field: 'content', headerName: '내용', editable: isOwn, flex: 3 },
-        { field: 'author', headerName: '작성자', editable: false, width: 120 },
-        { field: 'createdAtText', headerName: '작성일', editable: false, width: 160 },
+        { field: 'content', headerName: '내용', editable: isOwn, flex: 5 },
+        { field: 'author', headerName: '작성자', editable: false, width: 90 },
+        { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
         {
           headerName: '',
           colId: 'actions',
-          width: 90,
+          width: 70,
           editable: false,
           cellRenderer: (params) => {
             if (!isOwn(params)) return ''
