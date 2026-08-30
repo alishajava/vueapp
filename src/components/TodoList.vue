@@ -1,52 +1,53 @@
 <template>
-  <div class="todo-list">
-    <h3>할 일 목록</h3>
-
-    <p v-if="!authReady" class="status">로그인 상태 확인 중...</p>
+  <a-card class="todo-list" title="할 일 목록">
+    <a-spin v-if="!authReady" />
 
     <div v-else-if="!user" class="login-box">
       <p>Google 계정으로 로그인하면 할 일이 클라우드에 저장되고,<br>다른 기기에서도 똑같이 볼 수 있어요.</p>
-      <button type="button" class="google-btn" @click="login">Google로 로그인</button>
-      <p v-if="authError" class="error">{{ authError }}</p>
+      <a-button type="primary" @click="login">Google로 로그인</a-button>
+      <a-alert v-if="authError" type="error" :message="authError" show-icon style="margin-top: 12px;" />
     </div>
 
     <div v-else>
       <div class="user-bar">
-        <img v-if="user.photoURL" :src="user.photoURL" alt="" class="avatar">
+        <a-avatar :src="user.photoURL" :size="28">{{ (user.displayName || user.email || '?')[0] }}</a-avatar>
         <span class="user-name">{{ user.displayName || user.email }}</span>
-        <button type="button" class="logout-btn" @click="logout">로그아웃</button>
+        <a-button type="link" size="small" @click="logout">로그아웃</a-button>
       </div>
 
-      <form class="todo-form" @submit.prevent="addTodo">
-        <input
-          v-model="newTodoText"
-          type="text"
+      <a-form layout="inline" class="todo-form" @submit.prevent="addTodo">
+        <a-input
+          v-model:value="newTodoText"
           placeholder="할 일을 입력하세요"
           aria-label="새 할 일"
-        >
-        <button type="submit">추가</button>
-      </form>
+          @press-enter="addTodo"
+        />
+        <a-button type="primary" @click="addTodo">추가</a-button>
+      </a-form>
 
-      <p v-if="todoError" class="error">{{ todoError }}</p>
+      <a-alert v-if="todoError" type="error" :message="todoError" show-icon style="margin: 12px 0;" />
 
-      <p v-if="loadingTodos" class="status">불러오는 중...</p>
-      <p v-else-if="todos.length === 0" class="empty">아직 할 일이 없어요.</p>
+      <a-spin v-if="loadingTodos" />
+      <a-empty v-else-if="todos.length === 0" description="아직 할 일이 없어요." />
 
-      <ul v-else class="items">
-        <li v-for="todo in todos" :key="todo.id" :class="{ done: todo.done }">
-          <label>
-            <input type="checkbox" :checked="todo.done" @change="toggleDone(todo)">
-            <span>{{ todo.text }}</span>
-          </label>
-          <button type="button" class="remove" @click="removeTodo(todo)" aria-label="삭제">✕</button>
-        </li>
-      </ul>
+      <a-list v-else :data-source="todos" size="small">
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <a-checkbox :checked="item.done" @change="toggleDone(item)">
+              <span :class="{ done: item.done }">{{ item.text }}</span>
+            </a-checkbox>
+            <template #actions>
+              <a-button type="text" danger size="small" @click="removeTodo(item)" aria-label="삭제">✕</a-button>
+            </template>
+          </a-list-item>
+        </template>
+      </a-list>
 
       <p v-if="todos.length > 0" class="summary">
         {{ remainingCount }}개 남음 / 총 {{ todos.length }}개
       </p>
     </div>
-  </div>
+  </a-card>
 </template>
 
 <script>
@@ -184,32 +185,8 @@ export default {
   text-align: left;
 }
 
-.status,
-.empty {
-  color: #888;
-}
-
-.error {
-  color: #c0392b;
-  font-size: 13px;
-}
-
 .login-box {
   text-align: center;
-}
-
-.google-btn {
-  padding: 10px 20px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
-  color: #444;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.google-btn:hover {
-  background-color: #f5f5f5;
 }
 
 .user-bar {
@@ -219,86 +196,25 @@ export default {
   margin-bottom: 16px;
 }
 
-.avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-}
-
 .user-name {
   flex: 1;
   font-size: 14px;
   color: #555;
 }
 
-.logout-btn {
-  border: none;
-  background: none;
-  color: #42b983;
-  cursor: pointer;
-  font-size: 13px;
-}
-
 .todo-form {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
-.todo-form input[type='text'] {
+.todo-form :deep(.ant-input) {
   flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
-.todo-form button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: #42b983;
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.todo-form button:hover {
-  background-color: #369870;
-}
-
-.items {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.items li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.items li label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.items li.done span {
+.done {
   text-decoration: line-through;
   color: #aaa;
-}
-
-.remove {
-  border: none;
-  background: none;
-  color: #c0392b;
-  cursor: pointer;
-  font-size: 14px;
 }
 
 .summary {
