@@ -13,6 +13,10 @@
         <h4>날짜별 등록 개수</h4>
         <Bar :data="dailyChartData" :options="barOptions" />
       </div>
+      <div class="chart-box chart-box-wide">
+        <h4>날짜별 완료/미완료 현황 (피벗)</h4>
+        <Bar :data="pivotChartData" :options="pivotOptions" />
+      </div>
     </div>
   </a-card>
 </template>
@@ -56,6 +60,14 @@ export default {
         responsive: true,
         maintainAspectRatio: false,
         scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      },
+      pivotOptions: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+        }
       }
     }
   },
@@ -86,6 +98,25 @@ export default {
           data: labels.map(day => counts[day]),
           backgroundColor: '#42b983'
         }]
+      }
+    },
+    pivotChartData() {
+      // 행: 날짜, 열: 완료/미완료, 값: 개수 -- 피벗 테이블을 누적 막대 차트로 표현
+      const doneCounts = {}
+      const remainingCounts = {}
+      this.todos.forEach(todo => {
+        if (!todo.createdAt) return
+        const day = todo.createdAt.toDate().toISOString().slice(0, 10)
+        const bucket = todo.done ? doneCounts : remainingCounts
+        bucket[day] = (bucket[day] || 0) + 1
+      })
+      const labels = [...new Set([...Object.keys(doneCounts), ...Object.keys(remainingCounts)])].sort()
+      return {
+        labels,
+        datasets: [
+          { label: '완료', data: labels.map(day => doneCounts[day] || 0), backgroundColor: '#42b983' },
+          { label: '미완료', data: labels.map(day => remainingCounts[day] || 0), backgroundColor: '#e0e0e0' }
+        ]
       }
     }
   },
@@ -139,6 +170,10 @@ export default {
   flex: 1;
   min-width: 260px;
   height: 260px;
+}
+
+.chart-box-wide {
+  flex-basis: 100%;
 }
 
 .chart-box h4 {
