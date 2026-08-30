@@ -1,10 +1,8 @@
 <template>
-  <div class="todo-stats">
-    <h3>할 일 통계</h3>
-
-    <p v-if="!authReady" class="status">로그인 상태 확인 중...</p>
-    <p v-else-if="!user" class="status">로그인하면 통계를 볼 수 있어요.</p>
-    <p v-else-if="todos.length === 0" class="status">아직 통계를 낼 데이터가 없어요. 할 일을 추가해보세요.</p>
+  <a-card class="todo-stats" title="할 일 통계">
+    <a-spin v-if="!authReady" />
+    <a-empty v-else-if="!user" description="로그인하면 통계를 볼 수 있어요." />
+    <a-empty v-else-if="todos.length === 0" description="아직 통계를 낼 데이터가 없어요. 할 일을 추가해보세요." />
 
     <div v-else class="charts">
       <div class="chart-box">
@@ -16,7 +14,7 @@
         <Bar :data="dailyChartData" :options="barOptions" />
       </div>
     </div>
-  </div>
+  </a-card>
 </template>
 
 <script>
@@ -129,11 +127,6 @@ export default {
   max-width: 700px;
   margin: 40px auto 0;
   text-align: left;
-}
-
-.status {
-  color: #888;
-  font-size: 13px;
 }
 
 .charts {

@@ -1,18 +1,16 @@
 <template>
-  <div class="board">
-    <h3>게시판</h3>
-
-    <p v-if="!authReady" class="status">로그인 상태 확인 중...</p>
-    <p v-else-if="!user" class="status">게시판은 로그인 후 이용할 수 있어요.</p>
+  <a-card class="board" title="게시판">
+    <a-spin v-if="!authReady" />
+    <a-empty v-else-if="!user" description="게시판은 로그인 후 이용할 수 있어요." />
 
     <template v-else>
-      <form class="post-form" @submit.prevent="addPost">
-        <input v-model="newTitle" type="text" placeholder="제목" aria-label="제목">
-        <input v-model="newContent" type="text" placeholder="내용" aria-label="내용">
-        <button type="submit">등록</button>
-      </form>
+      <a-form layout="inline" class="post-form" @submit.prevent="addPost">
+        <a-input v-model:value="newTitle" placeholder="제목" aria-label="제목" @press-enter="addPost" />
+        <a-input v-model:value="newContent" placeholder="내용" aria-label="내용" @press-enter="addPost" />
+        <a-button type="primary" @click="addPost">등록</a-button>
+      </a-form>
 
-      <p v-if="boardError" class="error">{{ boardError }}</p>
+      <a-alert v-if="boardError" type="error" :message="boardError" show-icon style="margin: 12px 0;" />
 
       <div class="grid-wrap">
         <ag-grid-vue
@@ -27,7 +25,7 @@
       </div>
       <p class="hint">제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
-  </div>
+  </a-card>
 </template>
 
 <script>
@@ -178,14 +176,8 @@ export default {
   text-align: left;
 }
 
-.status,
 .hint {
   color: #888;
-  font-size: 13px;
-}
-
-.error {
-  color: #c0392b;
   font-size: 13px;
 }
 
@@ -195,26 +187,8 @@ export default {
   margin-bottom: 12px;
 }
 
-.post-form input[type='text'] {
+.post-form :deep(.ant-input) {
   flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.post-form button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: #42b983;
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.post-form button:hover {
-  background-color: #369870;
 }
 
 .grid-wrap :deep(.grid-delete-btn) {
