@@ -14,6 +14,7 @@
       >
         <a-menu-item key="/">홈</a-menu-item>
         <a-menu-item key="/todos">할 일 목록</a-menu-item>
+        <a-menu-item key="/board">게시판</a-menu-item>
       </a-menu>
     </a-layout-sider>
     <a-layout>
