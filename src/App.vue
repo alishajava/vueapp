@@ -1,25 +1,36 @@
 <template>
-  <div id="app">
-    <HelloWorld msg="당신의 Vue.js 앱에 오신 것을 환영합니다"/>
-    <TodoList/>
-    <TodoStats/>
-    <PostBoard/>
-  </div>
+  <a-layout id="app">
+    <a-layout-sider
+      :width="200"
+      collapsible
+      breakpoint="lg"
+      collapsed-width="0"
+    >
+      <a-menu
+        mode="inline"
+        theme="dark"
+        :selected-keys="[$route.path]"
+        @click="onMenuClick"
+      >
+        <a-menu-item key="/">홈</a-menu-item>
+        <a-menu-item key="/todos">할 일 목록</a-menu-item>
+      </a-menu>
+    </a-layout-sider>
+    <a-layout>
+      <a-layout-content class="content">
+        <router-view/>
+      </a-layout-content>
+    </a-layout>
+  </a-layout>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-import TodoList from './components/TodoList.vue'
-import TodoStats from './components/TodoStats.vue'
-import PostBoard from './components/PostBoard.vue'
-
 export default {
   name: 'App',
-  components: {
-    HelloWorld,
-    TodoList,
-    TodoStats,
-    PostBoard
+  methods: {
+    onMenuClick({ key }) {
+      if (this.$route.path !== key) this.$router.push(key)
+    }
   }
 }
 </script>
@@ -29,8 +40,12 @@ export default {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
+  min-height: 100vh;
+}
+
+.content {
+  text-align: center;
+  padding: 40px 24px;
 }
 </style>
