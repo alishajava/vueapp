@@ -34,13 +34,11 @@
         v-else
         v-model="sortedTodos"
         item-key="id"
-        handle=".drag-handle"
         ghost-class="drag-ghost"
         class="items"
       >
         <template #item="{ element: todo }">
           <div class="item" :class="{ done: todo.done }">
-            <span class="drag-handle" aria-hidden="true">⠿</span>
             <a-checkbox :checked="todo.done" @change="toggleDone(todo)">
               <span :class="{ done: todo.done }">{{ todo.text }}</span>
             </a-checkbox>
@@ -257,13 +255,7 @@ export default {
   padding: 10px 0;
   border-bottom: 1px solid #eee;
   background: #fff;
-}
-
-.drag-handle {
   cursor: grab;
-  color: #bbb;
-  font-size: 16px;
-  user-select: none;
 }
 
 .drag-ghost {
