@@ -14,7 +14,7 @@
 
       <div class="grid-wrap">
         <ag-grid-vue
-          style="width: 100%; height: 320px;"
+          style="width: 100%; height: 520px;"
           :theme="gridTheme"
           :rowData="posts"
           :columnDefs="columnDefs"
@@ -171,7 +171,7 @@ export default {
 
 <style scoped>
 .board {
-  max-width: 700px;
+  max-width: 1100px;
   margin: 40px auto 0;
   text-align: left;
 }

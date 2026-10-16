@@ -28,29 +28,36 @@
       <a-alert v-if="todoError" type="error" :message="todoError" show-icon style="margin: 12px 0;" />
 
       <a-spin v-if="loadingTodos" />
-      <a-empty v-else-if="todos.length === 0" description="아직 할 일이 없어요." />
+      <a-empty v-else-if="sortedTodos.length === 0" description="아직 할 일이 없어요." />
 
-      <a-list v-else :data-source="todos" size="small">
-        <template #renderItem="{ item }">
-          <a-list-item>
-            <a-checkbox :checked="item.done" @change="toggleDone(item)">
-              <span :class="{ done: item.done }">{{ item.text }}</span>
+      <draggable
+        v-else
+        v-model="sortedTodos"
+        item-key="id"
+        handle=".drag-handle"
+        ghost-class="drag-ghost"
+        class="items"
+      >
+        <template #item="{ element: todo }">
+          <div class="item" :class="{ done: todo.done }">
+            <span class="drag-handle" aria-hidden="true">⠿</span>
+            <a-checkbox :checked="todo.done" @change="toggleDone(todo)">
+              <span :class="{ done: todo.done }">{{ todo.text }}</span>
             </a-checkbox>
-            <template #actions>
-              <a-button type="text" danger size="small" @click="removeTodo(item)" aria-label="삭제">✕</a-button>
-            </template>
-          </a-list-item>
+            <a-button type="text" danger size="small" class="remove-btn" @click="removeTodo(todo)" aria-label="삭제">✕</a-button>
+          </div>
         </template>
-      </a-list>
+      </draggable>
 
       <p v-if="todos.length > 0" class="summary">
-        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개
+        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개 · 드래그해서 순서를 바꿀 수 있어요
       </p>
     </div>
   </a-card>
 </template>
 
 <script>
+import draggable from 'vuedraggable'
 import {
   auth,
   db,
@@ -61,7 +68,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -72,6 +78,7 @@ import {
 
 export default {
   name: 'TodoList',
+  components: { draggable },
   data() {
     return {
       authReady: false,
@@ -88,6 +95,15 @@ export default {
   computed: {
     remainingCount() {
       return this.todos.filter(todo => !todo.done).length
+    },
+    sortedTodos: {
+      get() {
+        return [...this.todos].sort((a, b) => this.orderValue(a) - this.orderValue(b))
+      },
+      set(newList) {
+        this.todos = newList
+        this.persistOrder(newList)
+      }
     }
   },
   mounted() {
@@ -102,6 +118,10 @@ export default {
     if (this.unsubscribeTodos) this.unsubscribeTodos()
   },
   methods: {
+    orderValue(todo) {
+      if (typeof todo.order === 'number') return todo.order
+      return todo.createdAt ? todo.createdAt.toMillis() : 0
+    },
     async login() {
       this.authError = ''
       try {
@@ -123,10 +143,12 @@ export default {
 
       this.loadingTodos = true
       this.todoError = ''
+      // No orderBy here: ordering is done client-side (sortedTodos) so
+      // existing docs without an `order` field (pre-dating drag reorder)
+      // still show up instead of being silently excluded by the query.
       const todosQuery = query(
         collection(db, 'todos'),
-        where('uid', '==', this.user.uid),
-        orderBy('createdAt', 'asc')
+        where('uid', '==', this.user.uid)
       )
       this.unsubscribeTodos = onSnapshot(todosQuery, (snapshot) => {
         this.todos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -146,6 +168,7 @@ export default {
           uid: this.user.uid,
           text,
           done: false,
+          order: Date.now(),
           createdAt: serverTimestamp()
         })
       } catch (err) {
@@ -168,6 +191,16 @@ export default {
         this.todoError = this.describeFirestoreError(err)
       }
     },
+    async persistOrder(newList) {
+      this.todoError = ''
+      try {
+        await Promise.all(
+          newList.map((todo, index) => updateDoc(doc(db, 'todos', todo.id), { order: index }))
+        )
+      } catch (err) {
+        this.todoError = this.describeFirestoreError(err)
+      }
+    },
     describeFirestoreError(err) {
       if (err && err.code === 'permission-denied') {
         return '저장/조회 권한이 없어요. Firebase 콘솔 → Firestore Database → 규칙에 firestore.rules 내용이 게시되어 있는지 확인해주세요.'
@@ -180,7 +213,7 @@ export default {
 
 <style scoped>
 .todo-list {
-  max-width: 420px;
+  max-width: 900px;
   margin: 40px auto 0;
   text-align: left;
 }
@@ -210,6 +243,36 @@ export default {
 
 .todo-form :deep(.ant-input) {
   flex: 1;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #bbb;
+  font-size: 16px;
+  user-select: none;
+}
+
+.drag-ghost {
+  opacity: 0.4;
+  background: #f5f5f5;
+}
+
+.remove-btn {
+  margin-left: auto;
 }
 
 .done {
