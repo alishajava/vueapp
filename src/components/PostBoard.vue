@@ -20,12 +20,13 @@
           :columnDefs="columnDefs"
           :defaultColDef="defaultColDef"
           :rowDragManaged="true"
+          :rowDragEntireRow="true"
           @cell-value-changed="onCellValueChanged"
           @cell-clicked="onCellClicked"
           @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">맨 왼쪽 ⠿를 드래그하면 순서를 바꿀 수 있어요. 제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
+      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. 제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -78,7 +79,6 @@ export default {
     columnDefs() {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
       return [
-        { headerName: '', colId: 'drag', rowDrag: true, width: 40, editable: false, sortable: false, filter: false },
         { field: 'title', headerName: '제목', editable: isOwn, flex: 2 },
         { field: 'content', headerName: '내용', editable: isOwn, flex: 5 },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
