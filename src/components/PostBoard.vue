@@ -19,11 +19,13 @@
           :rowData="posts"
           :columnDefs="columnDefs"
           :defaultColDef="defaultColDef"
+          :rowDragManaged="true"
           @cell-value-changed="onCellValueChanged"
           @cell-clicked="onCellClicked"
+          @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
+      <p class="hint">맨 왼쪽 ⠿를 드래그하면 순서를 바꿀 수 있어요. 제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -37,7 +39,6 @@ import {
   onAuthStateChanged,
   collection,
   query,
-  orderBy,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -67,14 +68,17 @@ export default {
   },
   computed: {
     posts() {
-      return this.rawPosts.map(p => ({
-        ...p,
-        createdAtText: p.createdAt ? p.createdAt.toDate().toLocaleString('ko-KR') : ''
-      }))
+      return [...this.rawPosts]
+        .sort((a, b) => this.orderValue(a) - this.orderValue(b))
+        .map(p => ({
+          ...p,
+          createdAtText: p.createdAt ? p.createdAt.toDate().toLocaleString('ko-KR') : ''
+        }))
     },
     columnDefs() {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
       return [
+        { headerName: '', colId: 'drag', rowDrag: true, width: 40, editable: false, sortable: false, filter: false },
         { field: 'title', headerName: '제목', editable: isOwn, flex: 2 },
         { field: 'content', headerName: '내용', editable: isOwn, flex: 5 },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
@@ -104,6 +108,10 @@ export default {
     if (this.unsubscribePosts) this.unsubscribePosts()
   },
   methods: {
+    orderValue(post) {
+      if (typeof post.order === 'number') return post.order
+      return post.createdAt ? post.createdAt.toMillis() : 0
+    },
     subscribePosts() {
       if (this.unsubscribePosts) {
         this.unsubscribePosts()
@@ -112,7 +120,10 @@ export default {
       this.rawPosts = []
       if (!this.user) return
 
-      const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'asc'))
+      // No orderBy here: ordering is done client-side (see `posts`
+      // computed) so posts without an `order` field (pre-dating drag
+      // reorder) still show up instead of being excluded by the query.
+      const postsQuery = query(collection(db, 'posts'))
       this.unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
         this.rawPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
       }, (err) => {
@@ -130,6 +141,7 @@ export default {
           author: this.user.displayName || this.user.email,
           title,
           content,
+          order: Date.now(),
           createdAt: serverTimestamp()
         })
         this.newTitle = ''
@@ -155,6 +167,18 @@ export default {
       this.boardError = ''
       try {
         await deleteDoc(doc(db, 'posts', event.data.id))
+      } catch (err) {
+        this.boardError = this.describeError(err)
+      }
+    },
+    async onRowDragEnd(event) {
+      const orderedIds = []
+      event.api.forEachNodeAfterFilterAndSort(node => orderedIds.push(node.data.id))
+      this.boardError = ''
+      try {
+        await Promise.all(
+          orderedIds.map((id, index) => updateDoc(doc(db, 'posts', id), { order: index }))
+        )
       } catch (err) {
         this.boardError = this.describeError(err)
       }
