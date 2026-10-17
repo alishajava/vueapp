@@ -135,13 +135,16 @@ export default {
       const content = this.newContent.trim()
       if (!title || !this.user) return
       this.boardError = ''
+      const minOrder = this.rawPosts.length > 0
+        ? Math.min(...this.rawPosts.map(post => this.orderValue(post)))
+        : 0
       try {
         await addDoc(collection(db, 'posts'), {
           uid: this.user.uid,
           author: this.user.displayName || this.user.email,
           title,
           content,
-          order: Date.now(),
+          order: minOrder - 1,
           createdAt: serverTimestamp()
         })
         this.newTitle = ''
