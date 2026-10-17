@@ -17,7 +17,7 @@
           <Bar :data="dailyChartData" :options="barOptions" />
         </div>
       </div>
-      <div class="chart-box chart-box-wide">
+      <div class="chart-box">
         <h4>날짜별 완료/미완료 현황 (피벗)</h4>
         <div class="chart-canvas">
           <Bar :data="pivotChartData" :options="pivotOptions" />
@@ -161,39 +161,31 @@ export default {
 
 <style scoped>
 .todo-stats {
-  max-width: 1200px;
-  margin: 40px auto 0;
+  max-width: 1300px;
+  margin: 24px auto 0;
   text-align: left;
 }
 
 .charts {
   display: flex;
   flex-wrap: wrap;
-  row-gap: 48px;
-  column-gap: 32px;
+  row-gap: 24px;
+  column-gap: 24px;
 }
 
 .chart-box {
   flex: 1;
-  min-width: 360px;
-}
-
-.chart-box-wide {
-  flex-basis: 100%;
+  min-width: 300px;
 }
 
 .chart-box h4 {
-  margin: 0 0 12px;
-  font-size: 16px;
+  margin: 0 0 8px;
+  font-size: 14px;
   color: #555;
 }
 
 .chart-canvas {
   position: relative;
-  height: 360px;
-}
-
-.chart-box-wide .chart-canvas {
-  height: 420px;
+  height: 260px;
 }
 </style>
