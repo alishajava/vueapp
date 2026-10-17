@@ -26,7 +26,7 @@
           @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. 제목/내용 칸을 더블클릭하면 본인 글은 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
+      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -86,11 +86,12 @@ export default {
         {
           headerName: '',
           colId: 'actions',
-          width: 70,
+          width: 120,
           editable: false,
           cellRenderer: (params) => {
-            if (!isOwn(params)) return ''
-            return '<button type="button" class="grid-delete-btn">삭제</button>'
+            const viewBtn = '<button type="button" class="grid-view-btn">보기</button>'
+            if (!isOwn(params)) return viewBtn
+            return viewBtn + '<button type="button" class="grid-delete-btn">삭제</button>'
           }
         }
       ]
@@ -165,6 +166,10 @@ export default {
     },
     async onCellClicked(event) {
       if (event.colDef.colId !== 'actions') return
+      if (event.event.target.classList.contains('grid-view-btn')) {
+        this.$router.push(`/board/${event.data.id}`)
+        return
+      }
       if (!event.event.target.classList.contains('grid-delete-btn')) return
       if (!this.user || event.data.uid !== this.user.uid) return
       this.boardError = ''
@@ -224,5 +229,14 @@ export default {
   color: #c0392b;
   cursor: pointer;
   font-size: 13px;
+}
+
+.grid-wrap :deep(.grid-view-btn) {
+  border: none;
+  background: none;
+  color: #1677ff;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 8px;
 }
 </style>
