@@ -161,12 +161,15 @@ export default {
       if (!text || !this.user) return
       this.newTodoText = ''
       this.todoError = ''
+      const minOrder = this.todos.length > 0
+        ? Math.min(...this.todos.map(todo => this.orderValue(todo)))
+        : 0
       try {
         await addDoc(collection(db, 'todos'), {
           uid: this.user.uid,
           text,
           done: false,
-          order: Date.now(),
+          order: minOrder - 1,
           createdAt: serverTimestamp()
         })
       } catch (err) {
