@@ -5,7 +5,7 @@
     <a-empty v-else-if="todos.length === 0" description="아직 통계를 낼 데이터가 없어요. 할 일을 추가해보세요." />
 
     <div v-else class="charts">
-      <div class="chart-box">
+      <div class="chart-box chart-box-doughnut">
         <h4>완료 현황</h4>
         <div class="chart-canvas">
           <Doughnut :data="statusChartData" :options="doughnutOptions" />
@@ -169,13 +169,23 @@ export default {
 .charts {
   display: flex;
   flex-wrap: wrap;
-  row-gap: 24px;
+  row-gap: 16px;
   column-gap: 24px;
 }
 
 .chart-box {
   flex: 1;
   min-width: 300px;
+}
+
+.chart-box-doughnut {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.chart-box-doughnut .chart-canvas {
+  max-width: 320px;
+  margin: 0 auto;
 }
 
 .chart-box h4 {
@@ -186,6 +196,6 @@ export default {
 
 .chart-canvas {
   position: relative;
-  height: 260px;
+  height: 220px;
 }
 </style>
