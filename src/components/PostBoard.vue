@@ -79,8 +79,8 @@ export default {
     columnDefs() {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
       return [
-        { field: 'title', headerName: '제목', editable: isOwn, flex: 2 },
-        { field: 'content', headerName: '내용', editable: isOwn, flex: 5 },
+        { field: 'title', headerName: '제목', editable: isOwn, flex: 3 },
+        { field: 'content', headerName: '내용', editable: isOwn, flex: 4 },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
         { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
         {
