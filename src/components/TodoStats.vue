@@ -184,7 +184,7 @@ export default {
 }
 
 .chart-box-doughnut .chart-canvas {
-  max-width: 320px;
+  max-width: 260px;
   margin: 0 auto;
 }
 
@@ -196,6 +196,6 @@ export default {
 
 .chart-canvas {
   position: relative;
-  height: 220px;
+  height: 180px;
 }
 </style>
