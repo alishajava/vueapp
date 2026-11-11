@@ -13,9 +13,12 @@
         <h2 class="title">{{ post.title }}</h2>
         <div class="meta">{{ post.author }} · {{ createdAtText }}</div>
         <p class="content">{{ post.content }}</p>
-        <div v-if="isOwn" class="actions">
-          <a-button @click="startEdit">수정</a-button>
-          <a-button danger @click="removePost">삭제</a-button>
+        <div class="actions">
+          <a-button :type="liked ? 'primary' : 'default'" class="like-btn" @click="toggleLike">추천 {{ likeCount }}</a-button>
+          <template v-if="isOwn">
+            <a-button @click="startEdit">수정</a-button>
+            <a-button danger @click="removePost">삭제</a-button>
+          </template>
         </div>
       </template>
 
@@ -39,7 +42,9 @@ import {
   onSnapshot,
   updateDoc,
   deleteDoc,
-  doc
+  doc,
+  arrayUnion,
+  arrayRemove
 } from '../firebase'
 
 export default {
@@ -62,6 +67,12 @@ export default {
   computed: {
     isOwn() {
       return !!this.user && !!this.post && this.post.uid === this.user.uid
+    },
+    likeCount() {
+      return this.post && this.post.likes ? this.post.likes.length : 0
+    },
+    liked() {
+      return !!this.user && !!this.post && (this.post.likes || []).includes(this.user.uid)
     },
     createdAtText() {
       return this.post && this.post.createdAt ? this.post.createdAt.toDate().toLocaleString('ko-KR') : ''
@@ -121,6 +132,17 @@ export default {
       try {
         await updateDoc(doc(db, 'posts', this.post.id), { title, content })
         this.editing = false
+      } catch (err) {
+        this.boardError = this.describeError(err)
+      }
+    },
+    async toggleLike() {
+      if (!this.user) return
+      this.boardError = ''
+      try {
+        await updateDoc(doc(db, 'posts', this.post.id), {
+          likes: this.liked ? arrayRemove(this.user.uid) : arrayUnion(this.user.uid)
+        })
       } catch (err) {
         this.boardError = this.describeError(err)
       }

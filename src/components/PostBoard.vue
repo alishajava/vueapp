@@ -26,7 +26,7 @@
           @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
+      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. '추천'을 누르면 글을 추천하고, 다시 누르면 취소돼요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -45,7 +45,9 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove
 } from '../firebase'
 
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -83,6 +85,18 @@ export default {
         { field: 'content', headerName: '내용', editable: isOwn, flex: 4 },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
         { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
+        {
+          headerName: '추천',
+          colId: 'likes',
+          width: 100,
+          editable: false,
+          filter: false,
+          valueGetter: (params) => (params.data.likes || []).length,
+          cellRenderer: (params) => {
+            const liked = !!this.user && (params.data.likes || []).includes(this.user.uid)
+            return `<button type="button" class="grid-like-btn${liked ? ' liked' : ''}">추천 ${params.value}</button>`
+          }
+        },
         {
           headerName: '',
           colId: 'actions',
@@ -164,7 +178,23 @@ export default {
         this.boardError = this.describeError(err)
       }
     },
+    async toggleLike(post) {
+      if (!this.user) return
+      const liked = (post.likes || []).includes(this.user.uid)
+      this.boardError = ''
+      try {
+        await updateDoc(doc(db, 'posts', post.id), {
+          likes: liked ? arrayRemove(this.user.uid) : arrayUnion(this.user.uid)
+        })
+      } catch (err) {
+        this.boardError = this.describeError(err)
+      }
+    },
     async onCellClicked(event) {
+      if (event.colDef.colId === 'likes') {
+        if (event.event.target.classList.contains('grid-like-btn')) await this.toggleLike(event.data)
+        return
+      }
       if (event.colDef.colId !== 'actions') return
       if (event.event.target.classList.contains('grid-view-btn')) {
         this.$router.push(`/board/${event.data.id}`)
@@ -229,6 +259,23 @@ export default {
   color: #c0392b;
   cursor: pointer;
   font-size: 13px;
+}
+
+.grid-wrap :deep(.grid-like-btn) {
+  border: 1px solid #d9d9d9;
+  border-radius: 12px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 10px;
+}
+
+.grid-wrap :deep(.grid-like-btn.liked) {
+  border-color: #1677ff;
+  background: #1677ff;
+  color: #fff;
 }
 
 .grid-wrap :deep(.grid-view-btn) {

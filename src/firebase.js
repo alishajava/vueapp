@@ -11,7 +11,9 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -43,5 +45,7 @@ export {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove
 }

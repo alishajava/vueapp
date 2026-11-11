@@ -15,11 +15,28 @@ service cloud.firestore {
         && request.auth.uid == request.resource.data.uid;
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.uid;
+      function likesBefore() {
+        return resource.data.get('likes', []).toSet();
+      }
+      function likesAfter() {
+        return request.resource.data.get('likes', []).toSet();
+      }
+      // True when the only change is the caller adding or removing their
+      // own uid in `likes` (nobody can like on someone else's behalf).
+      function onlyTogglesOwnLike() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+          && likesAfter().difference(likesBefore())
+            .union(likesBefore().difference(likesAfter()))
+            .hasOnly([request.auth.uid]);
+      }
+
       // Owner can change anything; any signed-in user may reorder the
-      // shared board by changing only the `order` field.
+      // shared board by changing only the `order` field, or toggle their
+      // own like.
       allow update: if request.auth != null
         && (request.auth.uid == resource.data.uid
-          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['order']));
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['order'])
+          || onlyTogglesOwnLike());
     }
   }
 }
