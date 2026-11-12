@@ -4,11 +4,20 @@
     <a-empty v-else-if="!user" description="게시판은 로그인 후 이용할 수 있어요." />
 
     <template v-else>
-      <a-form layout="inline" class="post-form" @submit.prevent="addPost">
+      <div class="post-form">
         <a-input v-model:value="newTitle" placeholder="제목" aria-label="제목" @press-enter="addPost" />
-        <a-input v-model:value="newContent" placeholder="내용" aria-label="내용" @press-enter="addPost" />
-        <a-button type="primary" @click="addPost">등록</a-button>
-      </a-form>
+        <a-textarea
+          v-model:value="newContent"
+          placeholder="내용 (줄바꿈은 Enter, 등록은 Ctrl+Enter)"
+          aria-label="내용"
+          :auto-size="{ minRows: 2, maxRows: 8 }"
+          @keydown.ctrl.enter.prevent="addPost"
+          @keydown.meta.enter.prevent="addPost"
+        />
+        <div class="post-form-actions">
+          <a-button type="primary" @click="addPost">등록</a-button>
+        </div>
+      </div>
 
       <a-alert v-if="boardError" type="error" :message="boardError" show-icon style="margin: 12px 0;" />
 
@@ -21,12 +30,13 @@
           :defaultColDef="defaultColDef"
           :rowDragManaged="true"
           :rowDragEntireRow="true"
+          :stopEditingWhenCellsLoseFocus="true"
           @cell-value-changed="onCellValueChanged"
           @cell-clicked="onCellClicked"
           @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. '추천'을 누르면 글을 추천하고, 다시 누르면 취소돼요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요. 다른 사람 글은 읽기만 가능합니다.</p>
+      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. '추천'을 누르면 글을 추천하고, 다시 누르면 취소돼요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요(내용 칸은 Shift+Enter로 줄바꿈, Enter로 저장). 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -82,7 +92,15 @@ export default {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
       return [
         { field: 'title', headerName: '제목', editable: isOwn, flex: 3 },
-        { field: 'content', headerName: '내용', editable: isOwn, flex: 4 },
+        {
+          field: 'content',
+          headerName: '내용',
+          editable: isOwn,
+          flex: 4,
+          cellEditor: 'agLargeTextCellEditor',
+          cellEditorPopup: true,
+          cellEditorParams: { rows: 6, cols: 50, maxLength: 5000 }
+        },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
         { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
         {
@@ -245,12 +263,13 @@ export default {
 
 .post-form {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-.post-form :deep(.ant-input) {
-  flex: 1;
+.post-form-actions {
+  text-align: right;
 }
 
 .grid-wrap :deep(.grid-delete-btn) {
