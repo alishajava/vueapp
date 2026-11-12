@@ -20,6 +20,33 @@
             <a-button danger @click="removePost">삭제</a-button>
           </template>
         </div>
+
+        <section class="comments">
+          <h3 class="comments-title">댓글 {{ sortedComments.length }}</h3>
+          <a-alert v-if="commentError" type="error" :message="commentError" show-icon style="margin-bottom: 12px;" />
+          <ul v-if="sortedComments.length > 0" class="comment-list">
+            <li v-for="c in sortedComments" :key="c.id" class="comment">
+              <div class="comment-head">
+                <span class="comment-author">{{ c.author }}</span>
+                <span class="comment-time">{{ commentTime(c) }}</span>
+                <a-button
+                  v-if="user && c.uid === user.uid"
+                  type="text"
+                  danger
+                  size="small"
+                  class="comment-delete"
+                  @click="removeComment(c)"
+                >삭제</a-button>
+              </div>
+              <p class="comment-text">{{ c.text }}</p>
+            </li>
+          </ul>
+          <p v-else class="comment-empty">아직 댓글이 없어요. 첫 댓글을 남겨보세요.</p>
+          <div class="comment-form">
+            <a-textarea v-model:value="newComment" placeholder="댓글을 입력하세요" :rows="2" :maxlength="500" />
+            <a-button type="primary" @click="addComment">등록</a-button>
+          </div>
+        </section>
       </template>
 
       <template v-else>
@@ -39,10 +66,14 @@ import {
   auth,
   db,
   onAuthStateChanged,
+  collection,
+  query,
   onSnapshot,
+  addDoc,
   updateDoc,
   deleteDoc,
   doc,
+  serverTimestamp,
   arrayUnion,
   arrayRemove
 } from '../firebase'
@@ -60,11 +91,20 @@ export default {
       editing: false,
       editTitle: '',
       editContent: '',
+      comments: [],
+      newComment: '',
+      commentError: '',
       unsubscribeAuth: null,
-      unsubscribePost: null
+      unsubscribePost: null,
+      unsubscribeComments: null
     }
   },
   computed: {
+    sortedComments() {
+      // Comments still waiting for the server timestamp have no createdAt yet; keep them last.
+      const millis = (c) => (c.createdAt ? c.createdAt.toMillis() : Number.MAX_SAFE_INTEGER)
+      return [...this.comments].sort((a, b) => millis(a) - millis(b))
+    },
     isOwn() {
       return !!this.user && !!this.post && this.post.uid === this.user.uid
     },
@@ -88,8 +128,51 @@ export default {
   beforeUnmount() {
     if (this.unsubscribeAuth) this.unsubscribeAuth()
     if (this.unsubscribePost) this.unsubscribePost()
+    if (this.unsubscribeComments) this.unsubscribeComments()
   },
   methods: {
+    subscribeComments() {
+      if (this.unsubscribeComments) {
+        this.unsubscribeComments()
+        this.unsubscribeComments = null
+      }
+      this.comments = []
+      if (!this.user) return
+
+      const commentsQuery = query(collection(db, 'posts', this.$route.params.id, 'comments'))
+      this.unsubscribeComments = onSnapshot(commentsQuery, (snapshot) => {
+        this.comments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+      }, (err) => {
+        this.commentError = this.describeError(err)
+      })
+    },
+    commentTime(comment) {
+      return comment.createdAt ? comment.createdAt.toDate().toLocaleString('ko-KR') : ''
+    },
+    async addComment() {
+      const text = this.newComment.trim()
+      if (!text || !this.user) return
+      this.commentError = ''
+      try {
+        await addDoc(collection(db, 'posts', this.post.id, 'comments'), {
+          uid: this.user.uid,
+          author: this.user.displayName || this.user.email,
+          text,
+          createdAt: serverTimestamp()
+        })
+        this.newComment = ''
+      } catch (err) {
+        this.commentError = this.describeError(err)
+      }
+    },
+    async removeComment(comment) {
+      this.commentError = ''
+      try {
+        await deleteDoc(doc(db, 'posts', this.post.id, 'comments', comment.id))
+      } catch (err) {
+        this.commentError = this.describeError(err)
+      }
+    },
     subscribePost() {
       if (this.unsubscribePost) {
         this.unsubscribePost()
@@ -97,6 +180,7 @@ export default {
       }
       this.post = null
       this.notFound = false
+      this.subscribeComments()
       if (!this.user) return
 
       this.loading = true
@@ -205,5 +289,68 @@ export default {
 .actions {
   display: flex;
   gap: 8px;
+}
+
+.comments {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.comments-title {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.comment {
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.comment-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.comment-author {
+  font-weight: 600;
+}
+
+.comment-time {
+  color: #999;
+}
+
+.comment-delete {
+  margin-left: auto;
+}
+
+.comment-text {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.comment-empty {
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.comment-form :deep(textarea) {
+  flex: 1;
 }
 </style>
