@@ -1,4 +1,5 @@
 <template>
+  <a-config-provider :locale="koKR">
   <a-layout id="app">
     <a-layout-sider
       :width="200"
@@ -23,11 +24,17 @@
       </a-layout-content>
     </a-layout>
   </a-layout>
+  </a-config-provider>
 </template>
 
 <script>
+import koKR from 'ant-design-vue/es/locale/ko_KR'
+
 export default {
   name: 'App',
+  data() {
+    return { koKR }
+  },
   methods: {
     onMenuClick({ key }) {
       if (this.$route.path !== key) this.$router.push(key)
