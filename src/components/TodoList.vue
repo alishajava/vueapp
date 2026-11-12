@@ -22,6 +22,13 @@
           aria-label="새 할 일"
           @press-enter="addTodo"
         />
+        <a-date-picker
+          v-model:value="newDueDate"
+          value-format="YYYY-MM-DD"
+          placeholder="마감일(선택)"
+          aria-label="마감일"
+          class="due-input"
+        />
         <a-button type="primary" @click="addTodo">추가</a-button>
       </a-form>
 
@@ -42,13 +49,25 @@
             <a-checkbox :checked="todo.done" @change="toggleDone(todo)">
               <span :class="{ done: todo.done }">{{ todo.text }}</span>
             </a-checkbox>
+            <span v-if="dueStatus(todo, today) === 'overdue'" class="due-tag overdue">기한 지남</span>
+            <span v-else-if="dueStatus(todo, today) === 'today'" class="due-tag today">오늘 마감</span>
+            <a-date-picker
+              class="due-picker"
+              :class="dueStatus(todo, today)"
+              size="small"
+              value-format="YYYY-MM-DD"
+              placeholder="마감일"
+              aria-label="마감일"
+              :value="todo.dueDate || null"
+              @change="(value) => setDueDate(todo, value)"
+            />
             <a-button type="text" danger size="small" class="remove-btn" @click="removeTodo(todo)" aria-label="삭제">✕</a-button>
           </div>
         </template>
       </draggable>
 
       <p v-if="todos.length > 0" class="summary">
-        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개 · 드래그해서 순서를 바꿀 수 있어요
+        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개<template v-if="overdueCount > 0"> · <span class="overdue-count">기한 지난 {{ overdueCount }}개</span></template> · 드래그해서 순서를 바꿀 수 있어요
       </p>
     </div>
   </a-card>
@@ -73,6 +92,7 @@ import {
   doc,
   serverTimestamp
 } from '../firebase'
+import { todayString, dueStatus } from '../utils/due'
 
 export default {
   name: 'TodoList',
@@ -83,16 +103,22 @@ export default {
       authError: '',
       user: null,
       newTodoText: '',
+      newDueDate: null,
+      today: todayString(),
       todos: [],
       todoError: '',
       loadingTodos: false,
       unsubscribeAuth: null,
-      unsubscribeTodos: null
+      unsubscribeTodos: null,
+      todayTimer: null
     }
   },
   computed: {
     remainingCount() {
       return this.todos.filter(todo => !todo.done).length
+    },
+    overdueCount() {
+      return this.todos.filter(todo => dueStatus(todo, this.today) === 'overdue').length
     },
     sortedTodos: {
       get() {
@@ -110,12 +136,24 @@ export default {
       this.user = user
       this.subscribeTodos()
     })
+    // Keep "today" fresh if the page stays open past midnight.
+    this.todayTimer = setInterval(() => { this.today = todayString() }, 60000)
   },
   beforeUnmount() {
     if (this.unsubscribeAuth) this.unsubscribeAuth()
     if (this.unsubscribeTodos) this.unsubscribeTodos()
+    if (this.todayTimer) clearInterval(this.todayTimer)
   },
   methods: {
+    dueStatus,
+    async setDueDate(todo, value) {
+      this.todoError = ''
+      try {
+        await updateDoc(doc(db, 'todos', todo.id), { dueDate: value || null })
+      } catch (err) {
+        this.todoError = this.describeFirestoreError(err)
+      }
+    },
     orderValue(todo) {
       if (typeof todo.order === 'number') return todo.order
       return todo.createdAt ? todo.createdAt.toMillis() : 0
@@ -159,7 +197,9 @@ export default {
     async addTodo() {
       const text = this.newTodoText.trim()
       if (!text || !this.user) return
+      const dueDate = this.newDueDate || null
       this.newTodoText = ''
+      this.newDueDate = null
       this.todoError = ''
       const minOrder = this.todos.length > 0
         ? Math.min(...this.todos.map(todo => this.orderValue(todo)))
@@ -169,6 +209,7 @@ export default {
           uid: this.user.uid,
           text,
           done: false,
+          dueDate,
           order: minOrder - 1,
           createdAt: serverTimestamp()
         })
@@ -266,8 +307,47 @@ export default {
   background: #f5f5f5;
 }
 
-.remove-btn {
+.due-input {
+  width: 150px;
+}
+
+.due-picker {
+  width: 130px;
   margin-left: auto;
+}
+
+.due-picker.overdue :deep(input) {
+  color: #c0392b;
+}
+
+.due-picker.today :deep(input) {
+  color: #d46b08;
+}
+
+.due-tag {
+  margin-left: auto;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.due-tag + .due-picker {
+  margin-left: 0;
+}
+
+.due-tag.overdue {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.due-tag.today {
+  background: #fff3e0;
+  color: #d46b08;
+}
+
+.overdue-count {
+  color: #c0392b;
 }
 
 .done {

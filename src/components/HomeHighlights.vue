@@ -8,6 +8,7 @@
         <li v-for="todo in topTodos" :key="todo.id" :class="{ done: todo.done }">
           <span class="dot" :class="{ filled: todo.done }"></span>
           <span class="mini-text">{{ todo.text }}</span>
+          <span v-if="todo.dueDate && !todo.done" class="mini-due" :class="dueStatus(todo, today)">{{ shortDue(todo.dueDate) }}</span>
         </li>
       </ul>
       <router-link v-if="user" to="/todos" class="more-link">전체보기 →</router-link>
@@ -38,11 +39,13 @@ import {
   where,
   onSnapshot
 } from '../firebase'
+import { todayString, dueStatus } from '../utils/due'
 
 export default {
   name: 'HomeHighlights',
   data() {
     return {
+      today: todayString(),
       authReady: false,
       user: null,
       todos: [],
@@ -78,6 +81,10 @@ export default {
     if (this.unsubscribePosts) this.unsubscribePosts()
   },
   methods: {
+    dueStatus,
+    shortDue(dueDate) {
+      return dueDate.slice(5).replace('-', '/') + ' 마감'
+    },
     orderValue(item) {
       if (typeof item.order === 'number') return item.order
       return item.createdAt ? item.createdAt.toMillis() : 0
@@ -179,6 +186,22 @@ export default {
 .done .mini-text {
   text-decoration: line-through;
   color: #aaa;
+}
+
+.mini-due {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.mini-due.overdue {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.mini-due.today {
+  color: #d46b08;
+  font-weight: 600;
 }
 
 .mini-author {
