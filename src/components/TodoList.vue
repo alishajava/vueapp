@@ -34,15 +34,31 @@
 
       <a-alert v-if="todoError" type="error" :message="todoError" show-icon style="margin: 12px 0;" />
 
+      <a-radio-group
+        v-if="todos.length > 0"
+        v-model:value="filter"
+        button-style="solid"
+        size="small"
+        class="filter-bar"
+      >
+        <a-radio-button value="all">전체 {{ todos.length }}</a-radio-button>
+        <a-radio-button value="active">미완료 {{ remainingCount }}</a-radio-button>
+        <a-radio-button value="done">완료 {{ doneCount }}</a-radio-button>
+        <a-radio-button value="overdue">기한 지남 {{ overdueCount }}</a-radio-button>
+      </a-radio-group>
+
       <a-spin v-if="loadingTodos" />
-      <a-empty v-else-if="sortedTodos.length === 0" description="아직 할 일이 없어요." />
+      <a-empty v-else-if="todos.length === 0" description="아직 할 일이 없어요." />
+      <a-empty v-else-if="visibleTodos.length === 0" description="조건에 맞는 할 일이 없어요." />
 
       <draggable
         v-else
-        v-model="sortedTodos"
+        v-model="visibleTodos"
         item-key="id"
         ghost-class="drag-ghost"
         class="items"
+        :class="{ filtered: filter !== 'all' }"
+        :disabled="filter !== 'all'"
       >
         <template #item="{ element: todo }">
           <div class="item" :class="{ done: todo.done }">
@@ -67,7 +83,7 @@
       </draggable>
 
       <p v-if="todos.length > 0" class="summary">
-        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개<template v-if="overdueCount > 0"> · <span class="overdue-count">기한 지난 {{ overdueCount }}개</span></template> · 드래그해서 순서를 바꿀 수 있어요
+        {{ remainingCount }}개 남음 / 총 {{ todos.length }}개<template v-if="overdueCount > 0"> · <span class="overdue-count">기한 지난 {{ overdueCount }}개</span></template> · <template v-if="filter === 'all'">드래그해서 순서를 바꿀 수 있어요</template><template v-else>순서 변경은 '전체'에서 할 수 있어요</template>
       </p>
     </div>
   </a-card>
@@ -104,6 +120,7 @@ export default {
       user: null,
       newTodoText: '',
       newDueDate: null,
+      filter: 'all',
       today: todayString(),
       todos: [],
       todoError: '',
@@ -117,8 +134,20 @@ export default {
     remainingCount() {
       return this.todos.filter(todo => !todo.done).length
     },
+    doneCount() {
+      return this.todos.filter(todo => todo.done).length
+    },
     overdueCount() {
       return this.todos.filter(todo => dueStatus(todo, this.today) === 'overdue').length
+    },
+    visibleTodos: {
+      get() {
+        return this.sortedTodos.filter(todo => this.matchesFilter(todo))
+      },
+      set(newList) {
+        // Dragging is disabled outside the "all" view, so a reorder always carries the full list.
+        if (this.filter === 'all') this.sortedTodos = newList
+      }
     },
     sortedTodos: {
       get() {
@@ -146,6 +175,12 @@ export default {
   },
   methods: {
     dueStatus,
+    matchesFilter(todo) {
+      if (this.filter === 'active') return !todo.done
+      if (this.filter === 'done') return !!todo.done
+      if (this.filter === 'overdue') return dueStatus(todo, this.today) === 'overdue'
+      return true
+    },
     async setDueDate(todo, value) {
       this.todoError = ''
       try {
@@ -198,6 +233,8 @@ export default {
       const text = this.newTodoText.trim()
       if (!text || !this.user) return
       const dueDate = this.newDueDate || null
+      // A new todo that the current tab would hide (e.g. "완료") would look like it vanished.
+      if (!this.matchesFilter({ done: false, dueDate })) this.filter = 'all'
       this.newTodoText = ''
       this.newDueDate = null
       this.todoError = ''
@@ -287,9 +324,19 @@ export default {
   flex: 1;
 }
 
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 4px 0 8px;
+}
+
 .items {
   display: flex;
   flex-direction: column;
+}
+
+.items.filtered .item {
+  cursor: default;
 }
 
 .item {
