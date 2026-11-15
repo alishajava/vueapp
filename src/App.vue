@@ -56,4 +56,29 @@ export default {
   text-align: center;
   padding: 40px 24px;
 }
+
+/* Below the "lg" breakpoint the sider collapses to a floating menu button; keep it above the page content. */
+.ant-layout-sider-zero-width-trigger {
+  top: 8px !important;
+}
+
+@media (max-width: 991px) {
+  .content {
+    padding-top: 56px;
+  }
+}
+
+@media (max-width: 575px) {
+  .content {
+    padding: 56px 12px 24px;
+  }
+
+  .ant-card-head {
+    padding: 0 16px !important;
+  }
+
+  .ant-card-body {
+    padding: 16px !important;
+  }
+}
 </style>

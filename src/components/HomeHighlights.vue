@@ -133,7 +133,7 @@ export default {
 
 .highlight-card {
   flex: 1;
-  min-width: 300px;
+  min-width: min(300px, 100%);
   text-align: left;
 }
 
