@@ -23,20 +23,22 @@
 
       <div class="grid-wrap">
         <ag-grid-vue
-          style="width: 100%; height: 520px;"
+          :style="isNarrow ? 'width: 100%;' : 'width: 100%; height: 520px;'"
+          :domLayout="isNarrow ? 'autoHeight' : 'normal'"
           :theme="gridTheme"
           :rowData="posts"
           :columnDefs="columnDefs"
           :defaultColDef="defaultColDef"
           :rowDragManaged="true"
-          :rowDragEntireRow="true"
+          :rowDragEntireRow="!isTouch"
           :stopEditingWhenCellsLoseFocus="true"
           @cell-value-changed="onCellValueChanged"
           @cell-clicked="onCellClicked"
           @row-drag-end="onRowDragEnd"
         />
       </div>
-      <p class="hint">행을 드래그하면 순서를 바꿀 수 있어요. '보기'를 누르면 글 상세보기로 이동해요. '추천'을 누르면 글을 추천하고, 다시 누르면 취소돼요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요(내용 칸은 Shift+Enter로 줄바꿈, Enter로 저장). 다른 사람 글은 읽기만 가능합니다.</p>
+      <p v-if="isNarrow" class="hint">'보기'를 누르면 글 전체와 댓글을 볼 수 있어요.<template v-if="isTouch"> 제목 앞의 점 모양 손잡이를 끌면 순서를 바꿀 수 있어요.</template></p>
+      <p v-else class="hint">{{ isTouch ? '제목 앞의 점 모양 손잡이를 끌면 순서를 바꿀 수 있어요.' : '행을 드래그하면 순서를 바꿀 수 있어요.' }} '보기'를 누르면 글 상세보기로 이동해요. '추천'을 누르면 글을 추천하고, 다시 누르면 취소돼요. 제목/내용 칸을 더블클릭하면 본인 글은 바로 수정할 수 있어요(내용 칸은 Shift+Enter로 줄바꿈, Enter로 저장). 다른 사람 글은 읽기만 가능합니다.</p>
     </template>
   </a-card>
 </template>
@@ -76,7 +78,9 @@ export default {
       unsubscribeAuth: null,
       unsubscribePosts: null,
       gridTheme: themeQuartz,
-      defaultColDef: { resizable: true, sortable: true, filter: true }
+      defaultColDef: { resizable: true, sortable: true, filter: true },
+      isNarrow: false,
+      isTouch: false
     }
   },
   computed: {
@@ -90,8 +94,39 @@ export default {
     },
     columnDefs() {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
+      // On touch screens only a handle starts a row drag, so swiping the list scrolls it instead.
+      const titleCol = { field: 'title', headerName: '제목', editable: isOwn, rowDrag: this.isTouch }
+      const likesCol = {
+        headerName: '추천',
+        colId: 'likes',
+        editable: false,
+        filter: false,
+        valueGetter: (params) => (params.data.likes || []).length,
+        cellRenderer: (params) => {
+          const liked = !!this.user && (params.data.likes || []).includes(this.user.uid)
+          return `<button type="button" class="grid-like-btn${liked ? ' liked' : ''}">추천 ${params.value}</button>`
+        }
+      }
+      const actionsCol = {
+        headerName: '',
+        colId: 'actions',
+        editable: false,
+        cellRenderer: (params) => {
+          const viewBtn = '<button type="button" class="grid-view-btn">보기</button>'
+          if (!isOwn(params)) return viewBtn
+          return viewBtn + '<button type="button" class="grid-delete-btn">삭제</button>'
+        }
+      }
+      if (this.isNarrow) {
+        // Phone width: keep title + 추천 + 보기/삭제; the rest is on the detail page.
+        return [
+          { ...titleCol, flex: 1, minWidth: 120 },
+          { ...likesCol, width: 92 },
+          { ...actionsCol, width: 128 }
+        ]
+      }
       return [
-        { field: 'title', headerName: '제목', editable: isOwn, flex: 3 },
+        { ...titleCol, flex: 3 },
         {
           field: 'content',
           headerName: '내용',
@@ -103,33 +138,21 @@ export default {
         },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
         { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
-        {
-          headerName: '추천',
-          colId: 'likes',
-          width: 100,
-          editable: false,
-          filter: false,
-          valueGetter: (params) => (params.data.likes || []).length,
-          cellRenderer: (params) => {
-            const liked = !!this.user && (params.data.likes || []).includes(this.user.uid)
-            return `<button type="button" class="grid-like-btn${liked ? ' liked' : ''}">추천 ${params.value}</button>`
-          }
-        },
-        {
-          headerName: '',
-          colId: 'actions',
-          width: 120,
-          editable: false,
-          cellRenderer: (params) => {
-            const viewBtn = '<button type="button" class="grid-view-btn">보기</button>'
-            if (!isOwn(params)) return viewBtn
-            return viewBtn + '<button type="button" class="grid-delete-btn">삭제</button>'
-          }
-        }
+        { ...likesCol, width: 100 },
+        { ...actionsCol, width: 120 }
       ]
     }
   },
   mounted() {
+    this.mqNarrow = window.matchMedia('(max-width: 640px)')
+    this.mqTouch = window.matchMedia('(pointer: coarse)')
+    this.onMediaChange = () => {
+      this.isNarrow = this.mqNarrow.matches
+      this.isTouch = this.mqTouch.matches
+    }
+    this.onMediaChange()
+    this.mqNarrow.addEventListener('change', this.onMediaChange)
+    this.mqTouch.addEventListener('change', this.onMediaChange)
     this.unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       this.authReady = true
       this.user = user
@@ -137,6 +160,8 @@ export default {
     })
   },
   beforeUnmount() {
+    this.mqNarrow.removeEventListener('change', this.onMediaChange)
+    this.mqTouch.removeEventListener('change', this.onMediaChange)
     if (this.unsubscribeAuth) this.unsubscribeAuth()
     if (this.unsubscribePosts) this.unsubscribePosts()
   },

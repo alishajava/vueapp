@@ -59,10 +59,13 @@
         class="items"
         :class="{ filtered: filter !== 'all' }"
         :disabled="filter !== 'all'"
+        :delay="250"
+        :delay-on-touch-only="true"
+        :touch-start-threshold="8"
       >
         <template #item="{ element: todo }">
           <div class="item" :class="{ done: todo.done }">
-            <a-checkbox :checked="todo.done" @change="toggleDone(todo)">
+            <a-checkbox class="todo-check" :checked="todo.done" @change="toggleDone(todo)">
               <span :class="{ done: todo.done }">{{ todo.text }}</span>
             </a-checkbox>
             <span v-if="dueStatus(todo, today) === 'overdue'" class="due-tag overdue">기한 지남</span>
@@ -395,6 +398,40 @@ export default {
 
 .overdue-count {
   color: #c0392b;
+}
+
+@media (max-width: 575px) {
+  .todo-form {
+    flex-wrap: wrap;
+  }
+
+  .todo-form :deep(.ant-input) {
+    flex: 1 1 100%;
+  }
+
+  .due-input {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .item {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .todo-check {
+    flex: 1 1 100%;
+  }
+
+  .due-tag,
+  .due-picker {
+    margin-left: 24px;
+  }
+
+  .remove-btn {
+    margin-left: auto;
+  }
 }
 
 .done {

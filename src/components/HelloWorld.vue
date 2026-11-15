@@ -12,3 +12,15 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+h1 {
+  word-break: keep-all;
+}
+
+@media (max-width: 575px) {
+  h1 {
+    font-size: 22px;
+  }
+}
+</style>

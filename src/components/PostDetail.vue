@@ -12,7 +12,7 @@
       <template v-if="!editing">
         <h2 class="title">{{ post.title }}</h2>
         <div class="meta">{{ post.author }} · {{ createdAtText }}</div>
-        <p class="content">{{ post.content }}</p>
+        <p class="post-content">{{ post.content }}</p>
         <div class="actions">
           <a-button :type="liked ? 'primary' : 'default'" class="like-btn" @click="toggleLike">추천 {{ likeCount }}</a-button>
           <template v-if="isOwn">
@@ -272,7 +272,7 @@ export default {
   margin-bottom: 20px;
 }
 
-.content {
+.post-content {
   white-space: pre-wrap;
   line-height: 1.6;
   margin-bottom: 20px;
@@ -288,6 +288,7 @@ export default {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
