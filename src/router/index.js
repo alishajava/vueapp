@@ -1,14 +1,11 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import TodoView from '../views/TodoView.vue'
-import BoardView from '../views/BoardView.vue'
-import PostDetailView from '../views/PostDetailView.vue'
 
+// Each page is its own chunk, so e.g. the home page doesn't download the board's grid library.
 const routes = [
-  { path: '/', name: 'home', component: HomeView },
-  { path: '/todos', name: 'todos', component: TodoView },
-  { path: '/board', name: 'board', component: BoardView },
-  { path: '/board/:id', name: 'post-detail', component: PostDetailView }
+  { path: '/', name: 'home', component: () => import(/* webpackChunkName: "home" */ '../views/HomeView.vue') },
+  { path: '/todos', name: 'todos', component: () => import(/* webpackChunkName: "todos" */ '../views/TodoView.vue') },
+  { path: '/board', name: 'board', component: () => import(/* webpackChunkName: "board" */ '../views/BoardView.vue') },
+  { path: '/board/:id', name: 'post-detail', component: () => import(/* webpackChunkName: "post" */ '../views/PostDetailView.vue') }
 ]
 
 const router = createRouter({

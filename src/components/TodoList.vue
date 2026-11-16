@@ -9,12 +9,6 @@
     </div>
 
     <div v-else>
-      <div class="user-bar">
-        <a-avatar :src="user.photoURL" :size="28">{{ (user.displayName || user.email || '?')[0] }}</a-avatar>
-        <span class="user-name">{{ user.displayName || user.email }}</span>
-        <a-button type="link" size="small" @click="logout">로그아웃</a-button>
-      </div>
-
       <a-form layout="inline" class="todo-form" @submit.prevent="addTodo">
         <a-input
           v-model:value="newTodoText"
@@ -99,7 +93,6 @@ import {
   db,
   googleProvider,
   signInWithPopup,
-  signOut,
   onAuthStateChanged,
   collection,
   query,
@@ -201,11 +194,10 @@ export default {
       try {
         await signInWithPopup(auth, googleProvider)
       } catch (err) {
+        // Closing the popup is not an error worth showing.
+        if (err && (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request')) return
         this.authError = '로그인에 실패했어요: ' + err.message
       }
-    },
-    async logout() {
-      await signOut(auth)
     },
     subscribeTodos() {
       if (this.unsubscribeTodos) {
@@ -255,6 +247,11 @@ export default {
         })
       } catch (err) {
         this.todoError = this.describeFirestoreError(err)
+        // Give the text back so a failed save doesn't lose what was typed.
+        if (!this.newTodoText) {
+          this.newTodoText = text
+          this.newDueDate = dueDate
+        }
       }
     },
     async toggleDone(todo) {
@@ -276,8 +273,12 @@ export default {
     async persistOrder(newList) {
       this.todoError = ''
       try {
+        // Only write the todos whose position actually changed.
         await Promise.all(
-          newList.map((todo, index) => updateDoc(doc(db, 'todos', todo.id), { order: index }))
+          newList
+            .map((todo, index) => ({ todo, index }))
+            .filter(({ todo, index }) => todo.order !== index)
+            .map(({ todo, index }) => updateDoc(doc(db, 'todos', todo.id), { order: index }))
         )
       } catch (err) {
         this.todoError = this.describeFirestoreError(err)
@@ -302,19 +303,6 @@ export default {
 
 .login-box {
   text-align: center;
-}
-
-.user-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.user-name {
-  flex: 1;
-  font-size: 14px;
-  color: #555;
 }
 
 .todo-form {
