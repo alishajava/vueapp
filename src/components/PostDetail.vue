@@ -17,7 +17,9 @@
           <a-button :type="liked ? 'primary' : 'default'" class="like-btn" @click="toggleLike">추천 {{ likeCount }}</a-button>
           <template v-if="isOwn">
             <a-button @click="startEdit">수정</a-button>
-            <a-button danger @click="removePost">삭제</a-button>
+            <a-popconfirm title="이 글을 삭제할까요? 되돌릴 수 없어요." ok-text="삭제" cancel-text="취소" @confirm="removePost">
+              <a-button danger>삭제</a-button>
+            </a-popconfirm>
           </template>
         </div>
 
@@ -116,6 +118,15 @@ export default {
     },
     createdAtText() {
       return this.post && this.post.createdAt ? this.post.createdAt.toDate().toLocaleString('ko-KR') : ''
+    }
+  },
+  watch: {
+    // The component is reused when the address changes from one post straight to another.
+    '$route.params.id'(id) {
+      if (!id || this.$route.name !== 'post-detail') return
+      this.editing = false
+      this.newComment = ''
+      this.subscribePost()
     }
   },
   mounted() {

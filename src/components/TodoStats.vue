@@ -2,6 +2,7 @@
   <a-card class="todo-stats" title="할 일 통계">
     <a-spin v-if="!authReady" />
     <a-empty v-else-if="!user" description="로그인하면 통계를 볼 수 있어요." />
+    <a-alert v-else-if="statsError" type="error" :message="statsError" show-icon />
     <a-empty v-else-if="todos.length === 0" description="아직 통계를 낼 데이터가 없어요. 할 일을 추가해보세요." />
 
     <div v-else class="charts">
@@ -45,9 +46,9 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot
 } from '../firebase'
+import { localDateString } from '../utils/due'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -59,6 +60,7 @@ export default {
       authReady: false,
       user: null,
       todos: [],
+      statsError: '',
       unsubscribeAuth: null,
       unsubscribeTodos: null,
       doughnutOptions: { responsive: true, maintainAspectRatio: false },
@@ -93,7 +95,7 @@ export default {
       const counts = {}
       this.todos.forEach(todo => {
         if (!todo.createdAt) return
-        const day = todo.createdAt.toDate().toISOString().slice(0, 10)
+        const day = localDateString(todo.createdAt.toDate())
         counts[day] = (counts[day] || 0) + 1
       })
       const labels = Object.keys(counts).sort()
@@ -112,7 +114,7 @@ export default {
       const remainingCounts = {}
       this.todos.forEach(todo => {
         if (!todo.createdAt) return
-        const day = todo.createdAt.toDate().toISOString().slice(0, 10)
+        const day = localDateString(todo.createdAt.toDate())
         const bucket = todo.done ? doneCounts : remainingCounts
         bucket[day] = (bucket[day] || 0) + 1
       })
@@ -144,15 +146,18 @@ export default {
         this.unsubscribeTodos = null
       }
       this.todos = []
+      this.statsError = ''
       if (!this.user) return
 
+      // No orderBy: the charts sort their own labels, and an orderBy here would need a composite index.
       const todosQuery = query(
         collection(db, 'todos'),
-        where('uid', '==', this.user.uid),
-        orderBy('createdAt', 'asc')
+        where('uid', '==', this.user.uid)
       )
       this.unsubscribeTodos = onSnapshot(todosQuery, (snapshot) => {
         this.todos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+      }, (err) => {
+        this.statsError = '통계를 불러오지 못했어요: ' + (err && err.message ? err.message : String(err))
       })
     }
   }

@@ -29,6 +29,7 @@
           :rowData="posts"
           :columnDefs="columnDefs"
           :defaultColDef="defaultColDef"
+          :localeText="localeText"
           :rowDragManaged="true"
           :rowDragEntireRow="!isTouch"
           :stopEditingWhenCellsLoseFocus="true"
@@ -46,6 +47,7 @@
 <script>
 import { AgGridVue } from 'ag-grid-vue3'
 import { ModuleRegistry, AllCommunityModule, themeQuartz } from 'ag-grid-community'
+import { Modal } from 'ant-design-vue'
 import {
   auth,
   db,
@@ -64,6 +66,29 @@ import {
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
+const GRID_LOCALE_KO = {
+  noRowsToShow: '아직 게시글이 없어요',
+  loadingOoo: '불러오는 중...',
+  filterOoo: '검색어...',
+  contains: '포함',
+  notContains: '포함하지 않음',
+  equals: '같음',
+  notEqual: '같지 않음',
+  startsWith: '시작 글자',
+  endsWith: '끝 글자',
+  blank: '비어 있음',
+  notBlank: '비어 있지 않음',
+  andCondition: '그리고',
+  orCondition: '또는',
+  lessThan: '보다 작음',
+  greaterThan: '보다 큼',
+  inRange: '사이',
+  before: '이전',
+  after: '이후',
+  resetFilter: '초기화',
+  applyFilter: '적용'
+}
+
 export default {
   name: 'PostBoard',
   components: { AgGridVue },
@@ -79,18 +104,14 @@ export default {
       unsubscribePosts: null,
       gridTheme: themeQuartz,
       defaultColDef: { resizable: true, sortable: true, filter: true },
+      localeText: GRID_LOCALE_KO,
       isNarrow: false,
       isTouch: false
     }
   },
   computed: {
     posts() {
-      return [...this.rawPosts]
-        .sort((a, b) => this.orderValue(a) - this.orderValue(b))
-        .map(p => ({
-          ...p,
-          createdAtText: p.createdAt ? p.createdAt.toDate().toLocaleString('ko-KR') : ''
-        }))
+      return [...this.rawPosts].sort((a, b) => this.orderValue(a) - this.orderValue(b))
     },
     columnDefs() {
       const isOwn = (params) => !!this.user && params.data.uid === this.user.uid
@@ -137,7 +158,16 @@ export default {
           cellEditorParams: { rows: 6, cols: 50, maxLength: 5000 }
         },
         { field: 'author', headerName: '작성자', editable: false, width: 90 },
-        { field: 'createdAtText', headerName: '작성일', editable: false, width: 190 },
+        {
+          // Real Date values so sorting and filtering go by time, not by the formatted text.
+          colId: 'createdAt',
+          headerName: '작성일',
+          editable: false,
+          width: 190,
+          filter: 'agDateColumnFilter',
+          valueGetter: (params) => (params.data.createdAt ? params.data.createdAt.toDate() : null),
+          valueFormatter: (params) => (params.value ? params.value.toLocaleString('ko-KR') : '')
+        },
         { ...likesCol, width: 100 },
         { ...actionsCol, width: 120 }
       ]
@@ -245,20 +275,39 @@ export default {
       }
       if (!event.event.target.classList.contains('grid-delete-btn')) return
       if (!this.user || event.data.uid !== this.user.uid) return
+      const post = event.data
+      Modal.confirm({
+        title: '이 글을 삭제할까요?',
+        content: `"${post.title}" 글이 삭제되고 되돌릴 수 없어요.`,
+        okText: '삭제',
+        okType: 'danger',
+        cancelText: '취소',
+        onOk: () => this.deletePost(post)
+      })
+    },
+    async deletePost(post) {
       this.boardError = ''
       try {
-        await deleteDoc(doc(db, 'posts', event.data.id))
+        await deleteDoc(doc(db, 'posts', post.id))
       } catch (err) {
         this.boardError = this.describeError(err)
       }
     },
     async onRowDragEnd(event) {
-      const orderedIds = []
-      event.api.forEachNodeAfterFilterAndSort(node => orderedIds.push(node.data.id))
+      const api = event.api
+      // While the grid is sorted or filtered the rows on screen are not the board order
+      // (or not all of it), so saving them would overwrite everyone's order.
+      if (api.isAnyFilterPresent() || api.getColumnState().some(col => col.sort)) return
+      const ordered = []
+      api.forEachNodeAfterFilterAndSort(node => ordered.push(node.data))
+      const changed = ordered
+        .map((post, index) => ({ post, index }))
+        .filter(({ post, index }) => post.order !== index)
+      if (changed.length === 0) return
       this.boardError = ''
       try {
         await Promise.all(
-          orderedIds.map((id, index) => updateDoc(doc(db, 'posts', id), { order: index }))
+          changed.map(({ post, index }) => updateDoc(doc(db, 'posts', post.id), { order: index }))
         )
       } catch (err) {
         this.boardError = this.describeError(err)
